@@ -18,10 +18,6 @@ export function STACK({ stack }: StackContext) {
       sortKey: "identifier",
     },
     timeToLiveAttribute: "expiresAt",
-    // running into issues removing the stack and setting it 
-    // up again, as the tablename is fixed with the prefix etc.
-    // I.e., not having the appended jibberish-suffix that 
-    // AWS SAM/CFN is adding.
     cdk: {
       table: {
         removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -39,10 +35,6 @@ export function STACK({ stack }: StackContext) {
         permissions: [table],
       },
     },
-    // this will basically create a separate lambda that will 
-    // trigger on the S3 event and send out a custom message ...
-    // with this we can't use the actual event sent from S3?
-    // see: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-s3-bucket-notificationconfiguration.html
     notifications: {
       created: {
         function: {
