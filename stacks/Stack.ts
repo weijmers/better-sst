@@ -1,4 +1,4 @@
-import { StackContext, Api, Table, Bucket, Cron, Function } from "sst/constructs";
+import { StackContext, Api, Table, Bucket, Cron, Function, NextjsSite } from "sst/constructs";
 import * as cdk from "aws-cdk-lib";
 
 export function STACK({ stack }: StackContext) {
@@ -35,31 +35,36 @@ export function STACK({ stack }: StackContext) {
         permissions: [table],
       },
     },
-    notifications: {
-      created: {
-        function: {
-          handler: "packages/functions/src/trigger.handler",
-          environment: { 
-            TABLE: table.tableName,
-          },
-          permissions: [table],
-        },
-        events: ["object_created"],
-      },
-    },
+    
+    // we can use either this for a direct event that triggers a function,
+    // or we can use EVB to, and listen to events from that, this would 
+    // simplify the separation of buckets & tables and lambdas
+    // notifications: {
+    //   created: {
+    //     function: {
+    //       handler: "packages/functions/src/trigger.handler",
+    //       environment: { 
+    //         TABLE: table.tableName,
+    //       },
+    //       permissions: [table],
+    //     },
+    //     events: ["object_created"],
+    //   },
+    // },
     // if this is not provided, it ends up with a lot of 
     // orphan buckets :(
     cdk: {
       bucket: {
         autoDeleteObjects: true,
         removalPolicy: cdk.RemovalPolicy.DESTROY,
+        eventBridgeEnabled: true,
       },
     },
   });
 
-  // Need to re-visit, will this give us full permissions 
-  // to S3? :|
-  bucket.attachPermissions(["s3"]);
+  // need to re-visit, will this give us full permissions to S3? :|
+  // no longer needed if we use EVB ...
+  //bucket.attachPermissions(["s3"]);
   
   //
   //
@@ -139,8 +144,52 @@ export function STACK({ stack }: StackContext) {
   // downloader.bind([bucket]);
   // downloader.jobFunction.addEnvironment("BUCKET", bucket.bucketName);
 
+
+  // version 2, listen on EventBridge events instead ...
+  const triggerV2 = new Function(stack, "triggerV2", {
+    handler: "packages/functions/src/trigger.handler",
+    environment: {
+      TABLE: table.tableName,
+      BUCKET: bucket.bucketName,
+    },
+    permissions: [table, bucket],
+  });
+
+  const rule = new cdk.aws_events.Rule(stack, "rule", {
+    eventPattern: {
+      source: ["aws.s3"],
+      detailType: [ "Object Created" ],
+      detail: {
+        bucket: {
+          name: [ bucket.bucketName ]
+        }
+      }
+    },
+  });
+
+  rule.addTarget(new cdk.aws_events_targets.LambdaFunction(triggerV2, {
+    maxEventAge: cdk.Duration.hours(2),
+    retryAttempts: 3
+  }));
+
+  //
+  //
+  // WEBSITE
+  //
+  const web = new NextjsSite(stack, "web", {
+    path: "./packages/web",
+    environment: {
+      NEXT_PUBLIC_API: api.url,
+    },
+    // dev: {
+    //   deploy: false,
+    //   url: "http://localhost:3000",
+    // },
+  });
+
   stack.addOutputs({
-    ApiEndpoint: api.url,
+    ApiEndpoint: api.customDomainUrl || api.url,
+    WebEndpoint: web.customDomainUrl || web.url,
   });
 
   

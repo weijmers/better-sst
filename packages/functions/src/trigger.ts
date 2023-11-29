@@ -1,7 +1,6 @@
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { DynamoDB } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocument, PutCommand } from "@aws-sdk/lib-dynamodb";
-import { parse } from "csv";
 import { Game, Team } from "@better/core/types";
 import {
   slugify,
@@ -22,6 +21,8 @@ const documentClient = DynamoDBDocument.from(client, {
 });
 
 export const handler = async (event: any) => {
+  console.log(JSON.stringify(event, null, 2));
+  
   const bucket = event.Records[0].s3.bucket.name;
   console.log(`BUCKET: ${bucket}`);
 
