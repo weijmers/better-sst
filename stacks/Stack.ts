@@ -67,55 +67,77 @@ export function STACK({ stack }: StackContext) {
   //
 
   const api = new Api(stack, "api", {
-    defaults: {
-      function: {
-        environment: {
-          TABLE: table.tableName
-        }
-      }
-    },
-    routes: {
-      "GET /": "packages/functions/src/api.handler",
-    },
+    // defaults: {
+    //   function: {
+    //     environment: {
+    //       TABLE: table.tableName
+    //     }
+    //   }
+    // },
+    // routes: {
+    //   "GET /": "packages/functions/src/api.get",
+    // }
   });
 
-  api.attachPermissionsToRoute("GET /", ["dynamodb"]);
+  // api.attachPermissionsToRoute("GET /", ["dynamodb"]);
 
-  
   //
   //
   // FUNCTIONS
   //
 
-  // const downloader = new Function(stack, "downloader", {
-  //   handler: "packages/functions/src/downloader.handler",
-  //   bind: [bucket],
-  //   environment: {
-  //     BUCKET: bucket.bucketName,
-  //   },
-  //   // why isn't this a part of the documentation?
-  //   // https://docs.sst.dev/constructs/Function
-  //   // it also looks like it's only possible to specify an 
-  //   // eventsource for the following resources:
-  //   // - api,
-  //   // - dynamodb,
-  //   // - kafka,
-  //   // - kinesis,
-  //   // - s3,
-  //   // - sns (+ dlq),
-  //   // - sqs (+ dlq),
-  //   // - stream
-  //   // I.e., it's missing eventbridge rules and schedule expressions.
-  //   events: []
-  // });
-
-  const downloader = new Cron(stack, "downloader", {
-    schedule: "cron(0 0 * * ? *)",
-    job: "packages/functions/src/downloader.handler",
+  const apiGet = new Function(stack, "api-get", {
+    handler: "packages/functions/src/api.get",
+    environment: {
+      TABLE: table.tableName,
+    },
   });
 
-  downloader.bind([bucket]);
-  downloader.jobFunction.addEnvironment("BUCKET", bucket.bucketName);
+  apiGet.bind([table]);
+  api.addRoutes(stack, { "GET /": { function: apiGet } });
+
+  const downloaderV2 = new Function(stack, "downloader", {
+    handler: "packages/functions/src/downloader.handler",
+    environment: {
+      BUCKET: bucket.bucketName,
+    },
+  });
+
+  downloaderV2.bind([bucket]);
+
+  const scheduleRole = new cdk.aws_iam.Role(stack, "schedule-role", {
+    assumedBy: new cdk.aws_iam.ServicePrincipal("scheduler.amazonaws.com"),
+  });
+
+  const schedulePolicy = new cdk.aws_iam.Policy(stack, "schedule-policy", {
+    roles: [scheduleRole],
+    statements: [
+      new cdk.aws_iam.PolicyStatement({
+        effect: cdk.aws_iam.Effect.ALLOW,
+        actions: ["lambda:InvokeFunction"],
+        resources: [downloaderV2.functionArn]
+      }),
+    ],
+  });
+
+  const schedule = new cdk.aws_scheduler.CfnSchedule(stack, "schedule", {
+    scheduleExpression: "cron(0 0 * * ? *)",
+    flexibleTimeWindow: {
+      mode: "OFF",
+    },
+    target: {
+      arn: downloaderV2.functionArn,
+      roleArn: scheduleRole.roleArn,
+    }
+  });
+
+  // const downloader = new Cron(stack, "downloader", {
+  //   schedule: "cron(0 0 * * ? *)",
+  //   job: "packages/functions/src/downloader.handler",
+  // });
+
+  // downloader.bind([bucket]);
+  // downloader.jobFunction.addEnvironment("BUCKET", bucket.bucketName);
 
   stack.addOutputs({
     ApiEndpoint: api.url,

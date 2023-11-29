@@ -6,7 +6,7 @@ import { Game } from "@better/core/types";
 const client = new DynamoDB({ region: "eu-north-1" });
 const documentClient = DynamoDBDocument.from(client, {});
 
-export const handler = ApiHandler(async (_evt) => {
+export const get = ApiHandler(async (_evt) => {
   const games = await documentClient.scan({
     TableName: process.env.TABLE,
   });
