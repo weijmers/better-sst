@@ -23,10 +23,12 @@ const documentClient = DynamoDBDocument.from(client, {
 export const handler = async (event: any) => {
   console.log(JSON.stringify(event, null, 2));
   
-  const bucket = event.Records[0].s3.bucket.name;
+  // const bucket = event.Records[0].s3.bucket.name;
+  const bucket = event.detail.bucket.name;
   console.log(`BUCKET: ${bucket}`);
 
-  const file = event.Records[0].s3.object.key;
+  // const file = event.Records[0].s3.object.key;
+  const file = event.detail.object.key;
   console.log(`FILE: ${file}`);
   
   const response = await s3Client.send(new GetObjectCommand({

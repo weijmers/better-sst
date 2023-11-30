@@ -1,36 +1,35 @@
-
+import Link from 'next/link';
 import { IconType } from 'react-icons';
 import { BsPlus, BsPlayFill, BsFillLightningFill, BsGearFill } from 'react-icons/bs';
 import { IoIosFootball } from "react-icons/io";
 import { FaPlay } from "react-icons/fa";
 
 
+
 const SideBar = () => {
   return (
   <nav className="fixed top-0 left-0 h-screen w-16 flex flex-col
-  bg-white dark:bg-gray-900 shadow-lg">
-    <SideBarIcon icon={<IoIosFootball size="28" />} />
-    <Divider />
-    <SideBarIcon icon={<BsPlus size="32" />} />
-    <SideBarIcon icon={<BsFillLightningFill size="20" />} />
-    <Divider />
-    <SideBarIcon icon={<BsGearFill size="22" />} />
+  bg-white shadow-lg">
+    <SideBarIcon href="/" icon={<IoIosFootball size="28" />} text="Show games" />
+    <SideBarIcon href="/events" icon={<BsFillLightningFill size="20" />} />
+    <SideBarIcon href="/settings" icon={<BsGearFill size="22" />} />
   </nav>
   )
 }
 
 type SideBarIconProps = {
   icon: React.ReactNode;
+  href: string;
   text?: string;
 };
 
-const SideBarIcon = ({ icon, text = 'tooltip 💡' }: SideBarIconProps) => (
-  <div className="sidebar-icon group">
+const SideBarIcon = ({ icon, href, text }: SideBarIconProps) => (
+  <Link href={href} className="sidebar-icon group">
     {icon}
-    <span className="sidebar-tooltip group-hover:scale-100">
+    {text && <span className="sidebar-tooltip group-hover:scale-100">
       {text}
-    </span>
-  </div>
+    </span>}
+  </Link>
 );
 
 
