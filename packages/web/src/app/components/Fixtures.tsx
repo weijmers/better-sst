@@ -1,11 +1,36 @@
-import { FaRegStar } from "react-icons/fa";
-import { Game, Team } from "@better/core/types";
+"use client"
 
-type GameProps = {
-  game: Game;
+import { FaRegStar } from "react-icons/fa";
+import { GameDTO } from "@better/core/types";
+
+type FixturesProps = {
+  gamesByDate: Record<string, GameDTO[]>;
 }
 
-const Game = ({ game }: GameProps) => {
+const Fixtures = ({ gamesByDate }: FixturesProps) => {
+  return (<div className="flex">
+    {gamesByDate && Object.keys(gamesByDate).map((value, index) => {
+      return (<Fixture key={index} date={value} index={index} games={gamesByDate[value]} />)
+    })}
+  </div>);
+};
+
+const Fixture = ({ date, index, games }: {
+  date: string;
+  index: number;
+  games: GameDTO[];
+}) => {
+  return (<div className="border-gray-900">
+    <div className="text-center text-xl">{date}</div>
+    <div>
+      {games && games.map((value, index) => <Game game={value} key={index} />)}
+    </div>
+  </div>);
+};
+
+const Game = ({ game }: {
+  game: GameDTO;
+}) => {
   return (
     <div className="border-gray-400 border-l-2 rounded-md my-1 cursor-pointer">
       <div className="w-96 flex flex-row p-4 rounded-md bg-gray-200
@@ -29,4 +54,4 @@ const Game = ({ game }: GameProps) => {
   );
 }
 
-export default Game;
+export default Fixtures;

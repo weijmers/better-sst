@@ -4,14 +4,17 @@ export const convertToDate = (date: string) => {
   return iso8601Date;
 }
 
-export const convertToDateTime = (date: string, time: string) => {
-  const iso8601Date = date.replace(/^([\d]{2})\/([\d]{2})\/([\d]{4})$/, '$3-$2-$1');
+export const convertToTime = (time: string) => {
   const timeRegex = /^[\d]{2}:[\d]{2}$/;
   if (!timeRegex.test(time)) {
     time = '00:00';
   }
+  return `${time}`;
+}
 
-  return `${iso8601Date} ${time}`;
+export const convertToDateTime = (date: string, time: string) => {
+  const iso8601Date = date.replace(/^([\d]{2})\/([\d]{2})\/([\d]{4})$/, '$3-$2-$1');
+  return `${iso8601Date} ${convertToTime(time)}`;
 }
 
 export const dateToExpiration = (date: string, daysToExpiration: number = 30) => {

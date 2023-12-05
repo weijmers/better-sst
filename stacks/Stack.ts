@@ -12,10 +12,17 @@ export function STACK({ stack }: StackContext) {
     fields: {
       date: "string",
       identifier: "string",
+      type: "string",
     },
     primaryIndex: {
       partitionKey: "date",
       sortKey: "identifier",
+    },
+    globalIndexes: {
+      "typeAndDate": {
+        partitionKey: "type",
+        sortKey: "date",
+      },
     },
     timeToLiveAttribute: "expiresAt",
     cdk: {
@@ -98,8 +105,20 @@ export function STACK({ stack }: StackContext) {
     },
   });
 
+  const apiGetFixtures = new Function(stack, "api-get-fixtures", {
+    handler: "packages/functions/src/api.fixtures",
+    environment: {
+      TABLE: table.tableName,
+    },
+  })
+
   apiGet.bind([table]);
-  api.addRoutes(stack, { "GET /": { function: apiGet } });
+  apiGetFixtures.bind([table]);
+  api.addRoutes(stack, {
+    "GET /": { function: apiGet },
+    "GET /fixtures": { function: apiGetFixtures },
+  });
+  
 
   const downloaderV2 = new Function(stack, "downloader", {
     handler: "packages/functions/src/downloader.handler",
